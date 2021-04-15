@@ -159,7 +159,7 @@ func main() {
 		"\t\taccesslist = \"permit ip any " + *ipSeiteAPtr + " " + *maskSeiteAPtr + "\";\n" +
 		"\t}\n" +
 		"\tike_forward_rules = \"udp 0.0.0.0:500 0.0.0.0:500\",\n" +
-		"\t\t\t\t\"udp 0.0.0.0:4500 0.0.0.0:4500\";\n" +
+		"\t\t\t\"udp 0.0.0.0:4500 0.0.0.0:4500\";\n" +
 		"}\n"
 	fmt.Printf("%s", fipsecA)
 	fmt.Println("=========")

@@ -1,3 +1,4 @@
+#!/bin/bash
 mkdir -p build/macOS_intel/
 mkdir -p build/win/
 mkdir -p build/linux_intel/
@@ -14,8 +15,9 @@ export GPARCH=amd64
 go build -o build/linux_intel/
 export GOOS=linux
 export GPARCH=arm
-export GOARM=5
+export GOARM=7
 go build -o build/linux_arm/
 export GOOS=freebsd
 export GOARCH=amd64
 go build -o build/freebsd/
+chmod -R +x build/
