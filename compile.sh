@@ -19,7 +19,6 @@ export GOARCH=amd64
 go build -o build/linux_intel/
 export GOOS=linux
 export GOARCH=arm64
-export GOARM=7
 go build -o build/linux_arm64/
 export GOOS=linux
 export GOARCH=arm
