@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/sethvargo/go-password/password"
@@ -25,11 +26,6 @@ func printSetup(a string, b string, c string) {
 	fmt.Println("=========")
 }
 
-func printPSK(a string, b string, c string) {
-	fmt.Println("ipsec.secret")
-	fmt.Printf("@%s @%s : \"%s\"\n", a, b, c)
-	fmt.Println("=========")
-}
 func genPSK() string {
 	//PSK Generieren
 	PSK, err := password.Generate(36, 10, 10, false, true)
@@ -39,6 +35,49 @@ func genPSK() string {
 	return PSK
 }
 
+func create_ipsec_secret(a string, b string, c string, d string, e string) string {
+	z := strings.Replace(a, "###PSK###", b, -1)
+	z = strings.Replace(z, "###DYNDNSA###", c, -1)
+	z = strings.Replace(z, "###DYNDNSB###", d, -1)
+	z = strings.Replace(z, "###IP###", e, -1)
+	return z
+}
+
+func create_ipsec_conf(a string, b string, c string, d string, e string, f string, g string) string {
+	// Replace
+	z := strings.Replace(a, "###NAME###", b, -1)
+	z = strings.Replace(z, "###DYNDNSA###", c, -1)
+	z = strings.Replace(z, "###DYNDNSB###", d, -1)
+	z = strings.Replace(z, "###IPSEITEA###", e, -1)
+	z = strings.Replace(z, "###IPSEITEB###", f, -1)
+	z = strings.Replace(z, "###PSK###", g, -1)
+	return z
+}
+
+func createDir(a string, b string, c string, d string) string {
+	DirPATH := "./" + a + "_" + b + "/" + c + "/" + d
+	os.MkdirAll(DirPATH, os.ModePerm)
+	return DirPATH
+}
+
+func wConfig(path string, filename string, config string) string {
+	path = path + "/" + filename
+	f, err := os.Create(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	_, err2 := f.WriteString(config)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	return path
+}
+
+func createNftables(nftables string, ip string) string {
+	nft_conf := strings.Replace(nftables, "###IPSEITEB###", ip, -1)
+	return nft_conf
+}
 func main() {
 	PSK := genPSK()
 
@@ -52,10 +91,12 @@ func main() {
 	ipSeiteBPtr := flag.String("bip", "192.168.180.0", "IP Seite A")
 	DYNDNSB := flag.String("bdns", "b.myfritz.net", "Dyndns Seite B")
 	pconf := flag.Bool("P", false, "VPN Konfig anzeigen")
+	wconf := flag.Bool("W", false, "VPN Konfig schreiben")
 
 	flag.Parse()
+	//vpnsite := [][]string{{*nameSeiteAPtr, *ipSeiteAPtr, *DYNDNSA}, {*nameSeiteBPtr, *ipSeiteBPtr, *DYNDNSB}}
 
-	alipsec_conf := `conn ###NAME###
+	lipsec_conf := `conn "###NAME###"
 	aggressive = yes
 	fragmentation = yes
 	keyexchange = ikev1
@@ -88,7 +129,7 @@ func main() {
 
 	   `
 
-	bfipsec_conf := `vpncfg {
+	fipsec_conf := `vpncfg {
 	connections {
 		enabled = yes;
 		editable = yes;
@@ -138,41 +179,71 @@ func main() {
 
 `
 
+	nftables := `### nftables.conf
+	nft insert rule nat postrouting oifname <LAN> ip daddr ###IPSEITEB###\24 accept
+	nft add rule filter forward iifname <LAN> oifname <WAN> ip saddr ###IPSEITEB###\24 ct state new accept`
+
 	ipsec_secret := `
-	   @###DYNDNSA### @###DYNDNSB### : PSK "###PSK###"
-	   `
+#### ipsec.secret ###IP###
+@###DYNDNSA### @###DYNDNSB### : PSK "###PSK###"`
 
-	conNAME := "\"" + *nameSeiteAPtr + " => " + *nameSeiteBPtr + "\""
-	// Replace
-	alipsec_conf = strings.Replace(alipsec_conf, "###NAME###", conNAME, -1)
-	alipsec_conf = strings.Replace(alipsec_conf, "###DYNDNSA###", *DYNDNSA, -1)
-	alipsec_conf = strings.Replace(alipsec_conf, "###DYNDNSB###", *DYNDNSB, -1)
-	alipsec_conf = strings.Replace(alipsec_conf, "###DYNDNSA###", *DYNDNSA, -1)
-	alipsec_conf = strings.Replace(alipsec_conf, "###PSK###", PSK, -1)
-	alipsec_conf = strings.Replace(alipsec_conf, "###IPSEITEA###", *ipSeiteAPtr, -1)
-	alipsec_conf = strings.Replace(alipsec_conf, "###IPSEITEB###", *ipSeiteBPtr, -1)
+	conNAME := *nameSeiteAPtr + " <=> " + *nameSeiteBPtr
 
-	// Replace
-	bfipsec_conf = strings.Replace(bfipsec_conf, "###NAME###", conNAME, -1)
-	bfipsec_conf = strings.Replace(bfipsec_conf, "###DYNDNSA###", *DYNDNSA, -1)
-	bfipsec_conf = strings.Replace(bfipsec_conf, "###DYNDNSB###", *DYNDNSB, -1)
-	bfipsec_conf = strings.Replace(bfipsec_conf, "###DYNDNSA###", *DYNDNSA, -1)
-	bfipsec_conf = strings.Replace(bfipsec_conf, "###IPSEITEA###", *ipSeiteAPtr, -1)
-	bfipsec_conf = strings.Replace(bfipsec_conf, "###IPSEITEB###", *ipSeiteBPtr, -1)
-	bfipsec_conf = strings.Replace(bfipsec_conf, "###PSK###", PSK, -1)
+	alipsec_conf := create_ipsec_conf(lipsec_conf, conNAME, *DYNDNSA, *DYNDNSB, *ipSeiteAPtr, *ipSeiteBPtr, PSK)
+	blipsec_conf := create_ipsec_conf(lipsec_conf, conNAME, *DYNDNSB, *DYNDNSA, *ipSeiteBPtr, *ipSeiteAPtr, PSK)
+	afipsec_conf := create_ipsec_conf(fipsec_conf, conNAME, *DYNDNSB, *DYNDNSA, *ipSeiteBPtr, *ipSeiteAPtr, PSK)
+	bfipsec_conf := create_ipsec_conf(fipsec_conf, conNAME, *DYNDNSA, *DYNDNSB, *ipSeiteAPtr, *ipSeiteBPtr, PSK)
 
-	ipsec_secret = strings.Replace(ipsec_secret, "###PSK###", PSK, -1)
-	ipsec_secret = strings.Replace(ipsec_secret, "###DYNDNSB###", *DYNDNSB, -1)
-	ipsec_secret = strings.Replace(ipsec_secret, "###DYNDNSA###", *DYNDNSA, -1)
+	ipsec_secret_a := create_ipsec_secret(ipsec_secret, PSK, *DYNDNSA, *DYNDNSB, *ipSeiteAPtr)
+	ipsec_secret_b := create_ipsec_secret(ipsec_secret, PSK, *DYNDNSB, *DYNDNSA, *ipSeiteBPtr)
+
+	//nftables = strings.Replace(nftables, "###IPSEITEB###", *ipSeiteBPtr, -1)
+	nftables_a := createNftables(nftables, *ipSeiteBPtr)
+	nftables_b := createNftables(nftables, *ipSeiteAPtr)
 
 	printSetup(*nameSeiteAPtr, *ipSeiteAPtr, *DYNDNSA)
 	printSetup(*nameSeiteBPtr, *ipSeiteBPtr, *DYNDNSB)
 
 	if *pconf {
-		printPSK(*DYNDNSA, *DYNDNSB, PSK)
+		fmt.Printf("%s\n", ipsec_secret_a)
+		fmt.Println("========")
+		fmt.Printf("%s\n", ipsec_secret_b)
+		fmt.Println("========")
 		fmt.Printf("%s", alipsec_conf)
 		fmt.Println("========")
+		fmt.Printf("%s", blipsec_conf)
+		fmt.Println("========")
+		fmt.Printf("%s", afipsec_conf)
+		fmt.Println("========")
 		fmt.Printf("%s", bfipsec_conf)
+		fmt.Println("========")
+		fmt.Printf("%s\n", nftables_a)
+		fmt.Println("========")
+		fmt.Printf("%s\n", nftables_b)
+
 	}
 
+	if *wconf {
+		// Verzeichnisse Seite A
+		pFa := createDir(*nameSeiteAPtr, *nameSeiteBPtr, *ipSeiteAPtr, "Fritzbox")
+		pLa := createDir(*nameSeiteAPtr, *nameSeiteBPtr, *ipSeiteAPtr, "strongSwan")
+		// Verzeichnisse Seite B
+		pFb := createDir(*nameSeiteAPtr, *nameSeiteBPtr, *ipSeiteBPtr, "Fritzbox")
+		pLb := createDir(*nameSeiteAPtr, *nameSeiteBPtr, *ipSeiteBPtr, "strongSwan")
+
+		cpL_nft_a := wConfig(pLa, "nft.conf", nftables_a)
+		cpL_nft_b := wConfig(pLb, "nft.conf", nftables_b)
+
+		cpLa_secret := wConfig(pLa, "ipsec.secret", ipsec_secret_a)
+		cpLb_secret := wConfig(pLb, "ipsec.secret", ipsec_secret_a)
+
+		cpLa_conf := wConfig(pLa, "ipsec.conf", alipsec_conf)
+		cpLb_conf := wConfig(pLb, "ipsec.conf", blipsec_conf)
+
+		cpFa_cfg := wConfig(pFa, *ipSeiteAPtr+".cfg", afipsec_conf)
+		cpFb_cfg := wConfig(pFb, *ipSeiteBPtr+".cfg", bfipsec_conf)
+
+		fmt.Printf("\nDatei erstellt:\n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s", cpLa_secret, cpLb_secret, cpLa_conf, cpLb_conf, cpFa_cfg, cpFb_cfg, cpL_nft_a, cpL_nft_b)
+
+	}
 }
