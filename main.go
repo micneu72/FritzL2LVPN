@@ -130,58 +130,55 @@ func main() {
 	   `
 
 	fipsec_conf := `vpncfg {
-	connections {
-		enabled = yes;
-		editable = yes;
-		conn_type = conntype_lan;
-		name = "###NAME###";
-		boxuser_id = 0;
-		always_renew = yes;
-		reject_not_encrypted = no;
-		dont_filter_netbios = yes;
-		localip = 0.0.0.0;
-		local_virtualip = 0.0.0.0;
-		remotehostname = "###DYNDNSA###";
-		remote_virtualip = 0.0.0.0;
-		localid {
-			fqdn = "###DYNDNSB###";
-		}
-		remoteid {
-			fqdn = "###DYNDNSA###";
-		}
-		mode = phase1_mode_idp;
-		phase1ss = "all/all/all";
-		keytype = connkeytype_pre_shared;
-		key = "###PSK###";
-		cert_do_server_auth = no;
-		use_nat_t = yes;
-		use_xauth = no;
-		use_cfgmode = no;
-		phase2localid {
-			ipnet {
-				ipaddr = ###IPSEITEB###;
-				mask = 255.255.255.0;
-			}
-		}
-		phase2remoteid {
-			ipnet {
-				ipaddr = ###IPSEITEA###;
-				mask = 255.255.255.0;
-			}
-		}
-		phase2ss = "esp-all-all/ah-none/comp-all/pfs";
-		accesslist = "permit ip any ###IPSEITEA### 255.255.255.0";
-	}
-	ike_forward_rules = "udp 0.0.0.0:500 0.0.0.0:500",
-			"udp 0.0.0.0:4500 0.0.0.0:4500";
-
-}
-
-`
+        connections {
+                enabled = yes;
+                editable = yes;
+                conn_type = conntype_lan;
+                name = "###NAME###";
+                always_renew = no;
+                reject_not_encrypted = no;
+                dont_filter_netbios = yes;
+                localip = 0.0.0.0;
+                local_virtualip = 0.0.0.0;
+                remoteip = 0.0.0.0;
+                remote_virtualip = 0.0.0.0;
+                remotehostname = "###DYNDNSA###";
+                localid {
+                        fqdn = "###DYNDNSB###";
+                }
+                remoteid {
+                        fqdn = "###DYNDNSA###";
+                }
+                mode = phase1_mode_aggressive;
+                phase1ss = "all/all/all";
+                keytype = connkeytype_pre_shared;
+                key = "###PSK###";
+                cert_do_server_auth = no;
+                use_nat_t = yes;
+                use_xauth = no;
+                use_cfgmode = no;
+                phase2localid {
+                        ipnet {
+                                ipaddr = ###IPSEITEB###;
+                                mask = 255.255.255.0;
+                        }
+                }
+                phase2remoteid {
+                        ipnet {
+                                ipaddr = ###IPSEITEA###;
+                                mask = 255.255.255.0;
+                        }
+                }
+                phase2ss = "esp-all-all/ah-none/comp-all/pfs";
+                accesslist = "permit ip any ###IPSEITEA### 255.255.255.0";
+        }
+        ike_forward_rules = "udp 0.0.0.0:500 0.0.0.0:500", 
+                            "udp 0.0.0.0:4500 0.0.0.0:4500";
+}`
 
 	nftables := `### nftables.conf
-	nft insert rule nat postrouting oifname <LAN> ip daddr ###IPSEITEB###\24 accept
-	nft add rule filter forward iifname <LAN> oifname <WAN> ip saddr ###IPSEITEB###\24 ct state new accept`
+	nft insert rule nat postrouting oifname <LAN> ip daddr ###IPSEITEB###/24 accept
+	nft add rule filter forward iifname <LAN> oifname <WAN> ip saddr ###IPSEITEB###/24 ct state new accept`
 
 	ipsec_secret := `
 #### ipsec.secret ###IP###
@@ -214,9 +211,9 @@ func main() {
 		fmt.Printf("%s", blipsec_conf)
 		fmt.Println("========")
 		fmt.Printf("%s", afipsec_conf)
-		fmt.Println("========")
+		fmt.Println("\n========")
 		fmt.Printf("%s", bfipsec_conf)
-		fmt.Println("========")
+		fmt.Println("\n========")
 		fmt.Printf("%s\n", nftables_a)
 		fmt.Println("========")
 		fmt.Printf("%s\n", nftables_b)
@@ -243,7 +240,7 @@ func main() {
 		cpFa_cfg := wConfig(pFa, *ipSeiteAPtr+".cfg", afipsec_conf)
 		cpFb_cfg := wConfig(pFb, *ipSeiteBPtr+".cfg", bfipsec_conf)
 
-		fmt.Printf("\nDatei erstellt:\n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s", cpLa_secret, cpLb_secret, cpLa_conf, cpLb_conf, cpFa_cfg, cpFb_cfg, cpL_nft_a, cpL_nft_b)
+		fmt.Printf("\nDatei erstellt:\n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s\n", cpLa_secret, cpLb_secret, cpLa_conf, cpLb_conf, cpFa_cfg, cpFb_cfg, cpL_nft_a, cpL_nft_b)
 
 	}
 }
