@@ -5,6 +5,7 @@ mkdir -p build/linux_intel/
 mkdir -p build/linux_arm32/
 mkdir -p build/linux_arm64/
 mkdir -p build/freebsd/
+go get -t
 export GOOS=darwin
 export GOARCH=amd64
 go build -o build/macOS_intel/
