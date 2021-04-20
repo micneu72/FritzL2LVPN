@@ -5,18 +5,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/sethvargo/go-password/password"
 )
-
-/*func printSetup() {
-	fmt.Printf("%s", alipsec_conf)
-	fmt.Println("========")
-	fmt.Printf("%s", bfipsec_conf)
-	fmt.Printf("======== %s ipsec.secret", *nameSeiteAPtr)
-	fmt.Printf("%s", ipsec_secret)
-}*/
 
 func printSetup(a string, b string, c string) {
 	//Ausgabe Seite A
@@ -55,7 +48,8 @@ func create_ipsec_conf(a string, b string, c string, d string, e string, f strin
 }
 
 func createDir(a string, b string, c string, d string) string {
-	DirPATH := "./" + a + "_" + b + "/" + c + "/" + d
+	DirPATH := path.Join("./", a+"_"+b, c, d)
+	fmt.Println(DirPATH)
 	os.MkdirAll(DirPATH, os.ModePerm)
 	return DirPATH
 }
@@ -90,6 +84,8 @@ func main() {
 	nameSeiteBPtr := flag.String("bname", "Seite B", "Name der Seite B")
 	ipSeiteBPtr := flag.String("bip", "192.168.180.0", "IP Seite A")
 	DYNDNSB := flag.String("bdns", "b.myfritz.net", "Dyndns Seite B")
+
+	//Angabe für die Ausgabe
 	pconf := flag.Bool("P", false, "VPN Konfig anzeigen")
 	wconf := flag.Bool("W", false, "VPN Konfig schreiben")
 

@@ -1,0 +1,30 @@
+conn "{{.Name}}"
+	aggressive = yes
+	fragmentation = yes
+	keyexchange = ikev1
+	mobike = yes
+	reauth = yes
+	rekey = yes
+	forceencaps = no
+	installpolicy = yes
+	type = tunnel
+	dpdaction = restart
+	dpddelay = 10s
+	dpdtimeout = 60s
+
+	left={{.DYNDNSA}}
+	#left = %any
+	right = {{.DYNDNSB}}
+
+	leftid = {{.DYNDNSA}}
+	ikelifetime = 3600s
+	lifetime = 3600s
+	ike = aes256-sha512-modp1024!
+	leftauth = psk
+	rightauth = psk
+	rightid = @{{.DYNDNSB}}
+	reqid = 1
+	rightsubnet = {{.IPSEITEB}}/24
+	leftsubnet = {{.IPSEITEA}}/24
+	esp = aes256-sha512-modp1024!
+	auto = route
