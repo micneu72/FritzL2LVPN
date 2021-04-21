@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"path"
@@ -72,6 +73,20 @@ func createNftables(nftables string, ip string) string {
 	nft_conf := strings.Replace(nftables, "###IPSEITEB###", ip, -1)
 	return nft_conf
 }
+
+func nftTemplate(templatename, vpndata) {
+
+	tpl, err := template.ParseFiles(templatename)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	err = tpl.Execute(os.Stdout, vpndata)
+	if err != nil {
+		panic(err)
+	}
+	//return tpl
+}
+
 func main() {
 	PSK := genPSK()
 
@@ -88,9 +103,30 @@ func main() {
 	//Angabe für die Ausgabe
 	pconf := flag.Bool("P", false, "VPN Konfig anzeigen")
 	wconf := flag.Bool("W", false, "VPN Konfig schreiben")
+	t := flag.Bool("t", false, "test template")
 
 	flag.Parse()
-	//vpnsite := [][]string{{*nameSeiteAPtr, *ipSeiteAPtr, *DYNDNSA}, {*nameSeiteBPtr, *ipSeiteBPtr, *DYNDNSB}}
+	type VPNdata struct {
+		NameA string
+		ipA   string
+		dynA  string
+		NameB string
+		ipB   string
+		dynB  string
+		psk   string
+		Name  string
+	}
+	conName := *nameSeiteAPtr + "_" + *nameSeiteBPtr
+	vpndata := VPNdata{
+		NameA: *nameSeiteAPtr,
+		ipA:   *ipSeiteAPtr,
+		dynA:  *DYNDNSA,
+		NameB: *nameSeiteBPtr,
+		ipB:   *ipSeiteBPtr,
+		dynB:  *DYNDNSB,
+		psk:   PSK,
+		Name:  conName,
+	}
 
 	lipsec_conf := `conn "###NAME###"
 	aggressive = yes
@@ -238,5 +274,9 @@ func main() {
 
 		fmt.Printf("\nDatei erstellt:\n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s \n\t%s\n", cpLa_secret, cpLb_secret, cpLa_conf, cpLb_conf, cpFa_cfg, cpFb_cfg, cpL_nft_a, cpL_nft_b)
 
+	}
+
+	if *t {
+		nftTemplate("tmpl/nftablesA.tmpl", vpndata)
 	}
 }

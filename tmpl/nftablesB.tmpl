@@ -1,0 +1,3 @@
+### nftables.conf
+	nft insert rule nat postrouting oifname <LAN> ip daddr {{.ipA}}/24 accept
+	nft add rule filter forward iifname <LAN> oifname <WAN> ip saddr {{.ipA}}/24 ct state new accept
